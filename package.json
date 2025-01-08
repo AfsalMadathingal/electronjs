@@ -1,0 +1,28 @@
+{
+  "name": "electron-download-manager",
+  "version": "1.0.0",
+  "description": "A simple download manager using Electron and aria2c.",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "package": "electron-packager . DownloadManager --platform=win32 --arch=x64 --out=dist --overwrite",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "electron",
+    "download-manager",
+    "aria2c"
+  ],
+  "author": "Afsal Madathingal",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "electron": "^33.3.1",
+    "electron-packager": "^17.1.2",
+    "electron-reload": "^2.0.0-alpha.1"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "module-name": "^0.0.1-security"
+  }
+}

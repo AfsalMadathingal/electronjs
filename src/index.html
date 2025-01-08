@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Download Manager</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            dark: {
+              50: '#f8fafc',
+              100: '#f1f5f9',
+              200: '#e2e8f0',
+              300: '#cbd5e1',
+              400: '#94a3b8',
+              500: '#64748b',
+              600: '#475569',
+              700: '#334155',
+              800: '#1e293b',
+              900: '#0f172a',
+              950: '#020617',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #1e293b;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #475569;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #64748b;
+    }
+    .titlebar {
+      -webkit-app-region: drag;
+    }
+    .titlebar button {
+      -webkit-app-region: no-drag;
+    }
+  </style>
+</head>
+<body class="bg-dark-900 text-gray-100 h-screen overflow-hidden">
+  <!-- Fixed size container -->
+  <div class="w-[800px] h-[600px] bg-dark-800 flex flex-col">
+    <!-- Titlebar -->
+    <div class="titlebar bg-dark-900 px-4 py-2 flex items-center justify-between">
+      <div class="flex items-center space-x-2">
+        <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+        </svg>
+        <h1 class="text-sm font-semibold">Download Manager</h1>
+      </div>
+      <div class="flex space-x-2">
+        <button id="minimizeBtn" class="hover:bg-dark-700 p-1 rounded">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
+          </svg>
+        </button>
+        <button id="closeBtn" class="hover:bg-red-600 p-1 rounded">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Main content -->
+    <div class="flex-1 flex flex-col p-4 space-y-4 overflow-hidden">
+      <!-- Folder Selection -->
+      <div class="flex items-center space-x-2">
+        <input id="folder" type="text" readonly
+               class="flex-1 px-3 py-2 text-sm bg-dark-700 border border-dark-600 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500" 
+               placeholder="Select download folder..." />
+        <button id="selectFolderBtn" 
+                class="bg-dark-700 hover:bg-dark-600 px-3 py-2 rounded text-sm transition-colors">
+          Browse
+        </button>
+      </div>
+
+      <!-- Download URL Input -->
+      <form id="download-form" class="flex space-x-2">
+        <input type="text" id="url" required
+               class="flex-1 px-3 py-2 text-sm bg-dark-700 border border-dark-600 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500" 
+               placeholder="Enter download URL..." />
+        <button type="submit" 
+                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium min-w-[100px] transition-colors">
+          Download
+        </button>
+      </form>
+
+      <!-- Downloads List -->
+      <div class="flex-1 overflow-y-auto">
+        <ul id="downloads" class="space-y-2"></ul>
+      </div>
+    </div>
+  </div>
+
+  <template id="download-template">
+    <li class="bg-dark-700 rounded p-3 border border-dark-600">
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center space-x-2 min-w-0">
+          <svg class="w-4 h-4 text-blue-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+          </svg>
+          <span class="filename text-sm font-medium truncate"></span>
+        </div>
+        <div class="flex items-center space-x-3 shrink-0">
+          <div class="download-stats flex space-x-3 text-xs text-gray-400">
+            <span class="speed">0 KB/s</span>
+            <span class="percentage">0%</span>
+          </div>
+          <div class="flex space-x-2">
+            <button class="pause-btn bg-yellow-600 hover:bg-yellow-700 text-white px-2 py-1 rounded text-xs transition-colors">
+              Pause
+            </button>
+            <button class="resume-btn hidden bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs transition-colors">
+              Resume
+            </button>
+            <button class="stop-btn bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs transition-colors">
+              Stop
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="w-full bg-dark-600 rounded-full h-1.5">
+        <div class="progress-bar bg-blue-500 h-1.5 rounded-full transition-all duration-300 ease-in-out" style="width: 0%"></div>
+      </div>
+    </li>
+  </template>
+
+  <script>
+    const { startDownload, pauseDownload, resumeDownload, stopDownload, selectFolder, minimizeWindow, closeWindow, on } = window.electronAPI;
+
+    // DOM Elements
+    const form = document.getElementById('download-form');
+    const downloadsList = document.getElementById('downloads');
+    const folderInput = document.getElementById('folder');
+    const downloadTemplate = document.getElementById('download-template');
+
+    // Window Controls
+    document.getElementById('minimizeBtn').addEventListener('click', minimizeWindow);
+    document.getElementById('closeBtn').addEventListener('click', closeWindow);
+
+    // Folder Selection
+    document.getElementById('selectFolderBtn').addEventListener('click', async () => {
+      const folder = await selectFolder();
+      if (folder) {
+        folderInput.value = folder;
+      }
+    });
+
+    // Helper function to get filename from URL
+    function getFileName(url) {
+      try {
+        const urlObj = new URL(url);
+        const filename = urlObj.pathname.split('/').pop();
+        return filename || 'Unknown file';
+      } catch {
+        return 'Unknown file';
+      }
+    }
+
+    // Create download item
+    function createDownloadItem(downloadId, url) {
+      const template = downloadTemplate.content.cloneNode(true);
+      const li = template.querySelector('li');
+      const filename = getFileName(url);
+
+      li.setAttribute('data-download-id', downloadId);
+      li.querySelector('.filename').textContent = filename;
+
+      // Add event listeners
+      const pauseBtn = li.querySelector('.pause-btn');
+      const resumeBtn = li.querySelector('.resume-btn');
+      const stopBtn = li.querySelector('.stop-btn');
+
+      pauseBtn.addEventListener('click', async () => {
+        await pauseDownload(downloadId);
+        pauseBtn.classList.add('hidden');
+        resumeBtn.classList.remove('hidden');
+      });
+
+      resumeBtn.addEventListener('click', async () => {
+        await resumeDownload(downloadId);
+        resumeBtn.classList.add('hidden');
+        pauseBtn.classList.remove('hidden');
+      });
+
+      stopBtn.addEventListener('click', () => stopDownload(downloadId));
+
+      return li;
+    }
+
+    // Handle form submission
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const url = document.getElementById('url').value;
+      const folder = folderInput.value || './downloads';
+
+      const { downloadId, error } = await startDownload({ url, folder });
+      
+      if (error) {
+        // Show error notification
+        console.error('Download error:', error);
+        return;
+      }
+
+      const downloadItem = createDownloadItem(downloadId, url);
+      downloadsList.prepend(downloadItem);
+      form.reset();
+    });
+
+    // Update download progress
+    on('download-progress', ({ downloadId, progress, speed }) => {
+      const item = downloadsList.querySelector(`[data-download-id="${downloadId}"]`);
+      if (item) {
+        
+        item.querySelector('.progress-bar').style.width = `${progress}%`;
+        item.querySelector('.percentage').textContent = `${Math.round(progress)}%`;
+        item.querySelector('.speed').textContent = speed;
+      }
+    });
+
+    // Handle download completion
+    on('download-complete', ({ downloadId, status }) => {
+      const item = downloadsList.querySelector(`[data-download-id="${downloadId}"]`);
+      if (item) {
+        if (status === 'completed') {
+          item.classList.add('border-green-500');
+          item.querySelector('.download-stats').innerHTML = '<span class="text-green-500">Completed</span>';
+        } else {
+          item.classList.add('border-red-500');
+          item.querySelector('.download-stats').innerHTML = '<span class="text-red-500">Failed</span>';
+        }
+        item.querySelector('.pause-btn').remove();
+        item.querySelector('.resume-btn').remove();
+        item.querySelector('.stop-btn').remove();
+      }
+    });
+
+    // Handle download errors
+    on('download-error', ({ downloadId, error }) => {
+      const item = downloadsList.querySelector(`[data-download-id="${downloadId}"]`);
+      if (item) {
+        item.classList.add('border-red-500');
+        item.querySelector('.download-stats').innerHTML = `<span class="text-red-500">Error: ${error}</span>`;
+      }
+    });
+  </script>
+</body>
+</html>  
