@@ -85,8 +85,11 @@ ipcMain.handle('start-download', async (event, { url, folder }) => {
   try {
     const downloadDir = ensureDir(folder || path.join(app.getPath('downloads'), 'electron-dm'));
     const downloadId = Date.now().toString();
-    
-    // Configure aria2c with better options
+
+    // Check if the URL is a magnet link (torrent download)
+    const isMagnetLink = url.startsWith('magnet:?');
+
+    // Configure aria2c command for normal or torrent downloads
     const command = `aria2c "${url}" --dir="${downloadDir}" \
       --max-connection-per-server=16 \
       --split=16 \
@@ -96,6 +99,11 @@ ipcMain.handle('start-download', async (event, { url, folder }) => {
       --file-allocation=none \
       --human-readable=true \
       --summary-interval=1`;
+
+    // If it's a magnet link, let aria2c handle it as a torrent
+    if (isMagnetLink) {
+      console.log('Starting torrent download using aria2c...');
+    }
 
     const process = exec(command);
     downloads[downloadId] = {
